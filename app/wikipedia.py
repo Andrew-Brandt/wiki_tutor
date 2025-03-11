@@ -2,6 +2,7 @@
 import requests
 import time
 from .utils import clean_text
+from app import cache
 
 WIKI_API_URL = "https://en.wikipedia.org/w/api.php"
 HEADERS = {
@@ -9,7 +10,7 @@ HEADERS = {
     "Accept-Encoding": "gzip"  # Compress responses to reduce bandwidth
 }
 
-
+@cache.memoize()
 def get_article_content(title):
     """
     Fetch the full main article content using the MediaWiki query API.
@@ -47,33 +48,59 @@ def get_article_content(title):
     return (official_title, "Page not found")
 
 
-def get_lead_links(official_title):
+def get_lead_links_filtered(official_title):
     """
-    Fetch internal links from the lead section (section 0) using the MediaWiki parse API.
-    Returns a list of link titles (only from the main namespace), excluding any that match the official_title.
+    Fetches all internal links from the lead section and then filters them to only
+    include links that appear in the plain text extract of the lead section.
     """
+    # First, get the plain text extract of the lead section
     normalized_title = official_title.strip()
-    params = {
+
+    # Use the query API to get the plain text extract
+    params_extract = {
+        "action": "query",
+        "format": "json",
+        "prop": "extracts",
+        "titles": normalized_title,
+        "explaintext": True,
+        "redirects": 1,
+        # You might use additional parameters or custom logic to try to isolate just the lead section.
+    }
+    try:
+        response = requests.get(WIKI_API_URL, params=params_extract, headers=HEADERS)
+        response.raise_for_status()
+    except requests.RequestException:
+        return []
+
+    data = response.json()
+    pages = data.get("query", {}).get("pages", {})
+    page = list(pages.values())[0] if pages else {}
+    plain_text = page.get("extract", "")
+
+    # Now get the links using the parse API as before
+    params_links = {
         "action": "parse",
         "page": normalized_title,
         "format": "json",
         "prop": "links",
-        "section": "0"  # Only the lead (intro) section
+        "section": "0"
     }
-
     try:
-        response = requests.get(WIKI_API_URL, params=params, headers=HEADERS)
+        response = requests.get(WIKI_API_URL, params=params_links, headers=HEADERS)
         response.raise_for_status()
     except requests.RequestException:
-        return []  # Return empty list on error
+        return []
 
     data = response.json()
     links = data.get("parse", {}).get("links", [])
-    # Extract titles for links in the main namespace (ns == 0)
     raw_links = [link["*"] for link in links if link.get("ns") == 0]
-    # Filter out any link that exactly matches the official title (ignoring case)
-    filtered_links = [
-        link for link in raw_links
-        if link.strip().lower() != normalized_title.lower()
-    ]
+
+    # Filter out links that don't appear in the plain text extract
+    filtered_links = []
+    for link in raw_links:
+        # Normalize both strings for a simple substring check
+        if link.strip().lower() in plain_text.lower():
+            filtered_links.append(link)
+
     return filtered_links
+

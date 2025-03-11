@@ -1,6 +1,6 @@
 # app/routes.py
 from flask import Blueprint, jsonify
-from .wikipedia import get_article_content, get_lead_links
+from .wikipedia import get_article_content, get_lead_links_filtered
 
 main = Blueprint('main', __name__)
 
@@ -15,10 +15,10 @@ def fetch_topic(topic):
     # Fetch the main article content and official title.
     official_title, main_content = get_article_content(topic)
     # Retrieve the lead links using the official title.
-    lead_links = get_lead_links(official_title)
+    lead_links = get_lead_links_filtered(official_title)
 
     # Limit the number of lead links processed (adjust as needed)
-    max_links = 2
+    max_links = 5
     lead_links = lead_links[:max_links]
 
     # Fetch article content for each lead link
