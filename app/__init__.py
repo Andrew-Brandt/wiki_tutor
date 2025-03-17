@@ -3,31 +3,32 @@ from flask import Flask
 from flask_caching import Cache
 from flask_sqlalchemy import SQLAlchemy
 
-# Initialize Cache and SQLAlchemy (global instances)
-cache = Cache()
 db = SQLAlchemy()
+cache = Cache()  # Global cache instance
+
 
 def create_app():
     app = Flask(__name__)
 
-    # Set caching configuration on the app instance
+    # Configure SQLAlchemy
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///../instance/app.db'  # Database location
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  # Performance optimization
+
+    # Configure Flask-Caching with Redis
     app.config['CACHE_TYPE'] = 'RedisCache'
     app.config['CACHE_REDIS_HOST'] = 'localhost'
-    app.config['CACHE_REDIS_PORT'] = 6380  # Updated port for Redis
+    app.config['CACHE_REDIS_PORT'] = 6379
     app.config['CACHE_REDIS_DB'] = 0
-    app.config['CACHE_REDIS_URL'] = 'redis://localhost:6380/0'
-    app.config['CACHE_DEFAULT_TIMEOUT'] = 0
+    app.config['CACHE_REDIS_URL'] = 'redis://localhost:6379/0'
+    app.config['CACHE_DEFAULT_TIMEOUT'] = 86400
 
-    cache.init_app(app)
+    cache.init_app(app)  # Ensure cache is initialized
+    db.init_app(app)  # Ensure database is initialized
 
-    # Configure SQLAlchemy for SQLite
-
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    db.init_app(app)
-
-    # Import and register the blueprint from routes.py
-    from .routes import main
-    app.register_blueprint(main)
+    register_blueprints(app)  # Import routes AFTER Flask is initialized
 
     return app
+
+def register_blueprints(app):
+    from app.routes import main  # Delayed import to avoid circular issue
+    app.register_blueprint(main)
