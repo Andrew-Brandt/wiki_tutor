@@ -30,10 +30,10 @@ class Article(db.Model):
 class Summary(db.Model):
     __tablename__ = 'summary'
     id = db.Column(db.Integer, primary_key=True)
-    topic = db.Column(db.String(255), nullable=False)  # ✅ Ensure this exists
+    topic = db.Column(db.String(255), nullable=False)  # Ensure this exists
     article_id = db.Column(db.Integer, db.ForeignKey('articles.id'), nullable=False)
-    level = db.Column(db.String(20), nullable=False)  # ✅ Add this column
-    content = db.Column(db.Text, nullable=False)  # ✅ Store summarized text
+    level = db.Column(db.String(20), nullable=False)  # Add this column
+    content = db.Column(db.Text, nullable=False)  # Store summarized text
     generated_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def __repr__(self):
@@ -67,4 +67,4 @@ class Link(db.Model):
     __tablename__ = 'links'
     id = db.Column(db.Integer, primary_key=True)
     topic = db.Column(db.String(255), db.ForeignKey('articles.topic'), nullable=False)
-    linked_topic = db.Column(db.String(255), nullable=False)  # ✅ The internal link
+    linked_topic = db.Column(db.String(255), nullable=False)  # The internal link
