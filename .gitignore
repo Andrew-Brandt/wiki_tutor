@@ -15,8 +15,10 @@ eggs/
 lib/
 lib64/
 parts/
-redis-data/
+redis-data/*
 !redis-data/.gitkeep
+!redis-data/README.md
+instance/*
 sdist/
 var/
 *.egg-info/
